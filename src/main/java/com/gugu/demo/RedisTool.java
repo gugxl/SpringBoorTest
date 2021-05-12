@@ -1,6 +1,7 @@
 package com.gugu.demo;
 
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
 
 import java.util.Collections;
 
@@ -126,25 +127,44 @@ public class RedisTool {
         }
     }
 
-    public static void main(String[] args) throws Exception{
-        Jedis jedis = new Jedis("192.168.2.200", 6379);
-        String lockKey = "小谷";
-        String requestId = "name=gugu";
-        int expireTime = 30 * 1000;
-        if (tryGetDistributedLock(jedis, lockKey, requestId, expireTime)) {
-            System.out.println("获取锁成功");
-            Thread.sleep(10 * 1000);
-            if (releaseDistributedLock(jedis, lockKey, requestId)){
-                System.out.println("释放锁成功");
-            }else {
-                System.out.println("释放锁失败");
+    public static void main(String[] args) {
+        Jedis jedis = null;
+        try {
+            jedis = getJedisClient();
+            String lockKey = "小谷";
+            String requestId = "name=gugu";
+            int expireTime = 30 * 1000;
+            if (tryGetDistributedLock(jedis, lockKey, requestId, expireTime)) {
+                System.out.println("获取锁成功");
+                Thread.sleep(10 * 1000);
+                if (releaseDistributedLock(jedis, lockKey, requestId)){
+                    System.out.println("释放锁成功");
+                }else {
+                    System.out.println("释放锁失败");
+                }
+            } else {
+                System.out.println("获取锁失败");
             }
-        } else {
-            System.out.println("获取锁失败");
+        } catch (Exception e){
+            e.printStackTrace();
+        } finally {
+            close(jedis);
         }
+
+
 
     }
 
+    public static Jedis getJedisClient() {
+        JedisPool jedisPool = new JedisPool("192.168.2.200", 6379);
+        return jedisPool.getResource();
+    }
 
+    public static void close(Jedis jedis) {
+        if (null != jedis){
+            //注意这里不是关闭连接，在JedisPool模式下，Jedis会被归还给资源池。
+            jedis.close();
+        }
+    }
 
 }
