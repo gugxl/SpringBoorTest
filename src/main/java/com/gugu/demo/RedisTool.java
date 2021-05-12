@@ -1,9 +1,11 @@
 package com.gugu.demo;
 
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
+import org.springframework.util.CollectionUtils;
+import redis.clients.jedis.*;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author Administrator
@@ -150,9 +152,6 @@ public class RedisTool {
         } finally {
             close(jedis);
         }
-
-
-
     }
 
     public static Jedis getJedisClient() {
@@ -165,6 +164,82 @@ public class RedisTool {
             //注意这里不是关闭连接，在JedisPool模式下，Jedis会被归还给资源池。
             jedis.close();
         }
+    }
+
+    public void delBigHash(String bigHashKey){
+        Jedis jedis = getJedisClient();
+        ScanParams scanParams = new ScanParams().count(100);
+        String cursor = "0";
+
+        do {
+            ScanResult<Map.Entry<String, String>> scanResult = jedis.hscan(bigHashKey, cursor, scanParams);
+            List<Map.Entry<String, String>> entryList = scanResult.getResult();
+
+            if (! CollectionUtils.isEmpty(entryList)){
+                for (Map.Entry<String, String> entry : entryList) {
+                    jedis.hdel(bigHashKey, entry.getKey());
+                }
+            }
+            cursor = scanResult.getStringCursor();
+        } while (!"0".equals(cursor));
+
+        //删除bigkey
+        jedis.del(bigHashKey);
+
+        jedis.close();
+    }
+
+    public void delBigList(String bigListKey){
+        Jedis jedis = getJedisClient();
+        long llen = jedis.llen(bigListKey);
+        int counter = 0;
+        int left = 100;
+        while (counter < llen) {
+            //每次从左侧截掉100个
+            jedis.ltrim(bigListKey, left, llen);
+            counter += left;
+        }
+        //最终删除key
+        jedis.del(bigListKey);
+
+        jedis.close();
+    }
+    public void delBigSet(String bigSetKey){
+        Jedis jedis = getJedisClient();
+
+        ScanParams scanParams = new ScanParams().count(100);
+        String cursor = "0";
+        do {
+            ScanResult<String> scanResult = jedis.sscan(bigSetKey, cursor, scanParams);
+            List<String> memberList = scanResult.getResult();
+            if (memberList != null && !memberList.isEmpty()) {
+                for (String member : memberList) {
+                    jedis.srem(bigSetKey, member);
+                }
+            }
+            cursor = scanResult.getStringCursor();
+        } while (!"0".equals(cursor));
+        //删除bigkey
+        jedis.del(bigSetKey);
+
+        jedis.close();
+    }
+
+    public void delBigZset(String bigZsetKey){
+        Jedis jedis = getJedisClient();
+        ScanParams scanParams = new ScanParams().count(100);
+        String cursor = "0";
+        do {
+            ScanResult<Tuple> scanResult = jedis.zscan(bigZsetKey, cursor, scanParams);
+            List<Tuple> tupleList = scanResult.getResult();
+            if (tupleList != null && !tupleList.isEmpty()) {
+                for (Tuple tuple : tupleList) {
+                    jedis.zrem(bigZsetKey, tuple.getElement());
+                }
+            }
+            cursor = scanResult.getStringCursor();
+        } while (!"0".equals(cursor));
+        jedis.close();
     }
 
 }
