@@ -1,5 +1,6 @@
 package com.gugu.demo.controller;
 
+import com.gugu.demo.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -23,6 +24,7 @@ public class TestController {
 
     @GetMapping("/get-session")
     public Object readSession(HttpSession httpSession) {
+        StringUtils.isEmpty("aaa");
         Object obj = httpSession.getAttribute("sessionVal");
         System.out.println("'sessionVal' in Session = " + obj);
         return obj;
