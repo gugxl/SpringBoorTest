@@ -1,7 +1,9 @@
 package com.gugu.demo.controller;
 
+import com.gugu.demo.exception.CustomException;
 import com.gugu.demo.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpSession;
@@ -29,5 +31,17 @@ public class TestController {
         System.out.println("'sessionVal' in Session = " + obj);
         return obj;
     }
+
+    @GetMapping("/exceptionpage")
+    @ResponseBody
+    public Object exceptionPage(boolean success) throws CustomException {
+        if (success){
+            return "success";
+        }else {
+            throw new CustomException(404, "页面走丢了", new Exception());
+        }
+    }
+
+
 }
 
